@@ -5,3 +5,4 @@ def load_dictionary_from_file(file_path):
         dictionary = json.load(file)
     return dictionary
 
+

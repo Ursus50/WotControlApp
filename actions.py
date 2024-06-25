@@ -7,6 +7,9 @@ def clear_keys():
     pydirectinput.keyUp('s')
     pydirectinput.keyUp('d')
 
+def move_to(x, y):
+    pydirectinput.moveTo(x, y)
+
 def choose_action(gesture):
     clear_keys()
     if gesture == "Freedom":

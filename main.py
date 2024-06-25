@@ -7,7 +7,7 @@ from mlp_model import load_model_mlp
 from cnn_model import load_model_cnn
 from utils import load_dictionary_from_file
 
-from actions import choose_action
+from actions import choose_action, move_to
 
 import time
 
@@ -101,35 +101,40 @@ if __name__ == "__main__":
                 if results.multi_hand_landmarks and len(results.multi_hand_landmarks) > 0:
                     list_of_points = []
                     for hand_landmarks in results.multi_hand_landmarks:
+
                         for land in hand_landmarks.landmark:
                             list_of_points.append(land.x)
                             list_of_points.append(land.y)
                             list_of_points.append(land.z)
 
+                        # # Landmark dla indeksu (WRIST)
+                        # index_wrist = hand_landmarks.landmark[mp_hands.HandLandmark.WRIST]
+                        #
+                        # # Konwersja współrzędnych do zakresu ekranu
+                        # x = int(index_wrist.x * screen_width)
+                        # y = int(index_wrist.y * screen_height)
+                        #
+                        # # # Sterowanie myszką
+                        # # pyautogui.moveTo(x, y)
+                        # move_to(x, y)
+
                     # print(len(list_of_points))
                     if len(list_of_points) == 63:
+
+                        # Konwersja współrzędnych do zakresu ekranu (WRIST)
+                        x = int(list_of_points[0] * screen_width)
+                        y = int(list_of_points[1] * screen_height)
+
+                        # # Sterowanie myszkąa
+                        # pyautogui.moveTo(x, y)
+                        move_to(x, y)
+
                         gesture = predict_gesture(list_of_points)
                         print(gesture)
+
                         if gesture != last_gesture:
                             choose_action(gesture)
                             last_gesture = gesture
-
-
-
-
-
-
-                # print(list_of_points)
-
-                # # Landmark dla indeksu (palec wskazujący)
-                # index_finger_tip = hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP]
-                #
-                # # Konwersja współrzędnych do zakresu ekranu
-                # x = int(index_finger_tip.x * screen_width)
-                # y = int(index_finger_tip.y * screen_height)
-                #
-                # Sterowanie myszką
-                # pyautogui.moveTo(x, y)
 
             # Flip the image horizontally for a selfie-view display.
             cv2.imshow('MediaPipe Hands', image)
