@@ -129,7 +129,7 @@ if __name__ == "__main__":
                                 down()
                             elif y < screen_height_margin_down:
                                 up()
-wa                        else:
+                        else:
                             move_to(x, y)
 
                         gesture = predict_gesture(list_of_points)
