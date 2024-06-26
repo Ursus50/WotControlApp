@@ -7,9 +7,10 @@ from mlp_model import load_model_mlp
 from cnn_model import load_model_cnn
 from utils import load_dictionary_from_file
 
-from actions import choose_action, move_to
+from actions import choose_action, move_to, move, right, left, up, down
 
 import time
+
 
 def get_model(type_net):
     if type_net == "mlp":
@@ -18,7 +19,7 @@ def get_model(type_net):
         hidden_size1 = 128
         hidden_size2 = 32
         output_size = 9
-        loaded_model = load_model_mlp("mlp_model_9_912.pth", input_size, hidden_size1, hidden_size2, output_size)
+        loaded_model = load_model_mlp("mlp_model_9_944.pth", input_size, hidden_size1, hidden_size2, output_size)
     elif type_net == "cnn":
         # Załaduj wytrenowany model
         input_channels = 1
@@ -26,10 +27,11 @@ def get_model(type_net):
         hidden_size1 = 128
         hidden_size2 = 32
         output_size = 9
-        loaded_model = load_model_cnn("cnn_mlp_model_9_907.pth", input_channels, input_length, hidden_size1, hidden_size2,
+        loaded_model = load_model_cnn("cnn_mlp_model_9_907.pth", input_channels, input_length, hidden_size1,
+                                      hidden_size2,
                                       output_size)
     else:
-        raise print("Wrong type of net")
+        raise ValueError("Wrong type of net")
 
     loaded_model.eval()
     return loaded_model
@@ -44,50 +46,58 @@ def predict_gesture(input_data):
         predicted_gesture = dictionary_gesture[predicted]
     return predicted_gesture
 
-def get_name_gesture(number):
-    pass
 
 if __name__ == "__main__":
-    # model = None
+
     model = get_model("cnn")
 
     pathDictionary = "class_names.json"
     dictionary_gesture = load_dictionary_from_file(pathDictionary)
-    # for key in dictionary_gesture:
-    #     print(key)
-    #     print(type(key))
-    # print(dictionary_gesture)
 
     mp_drawing = mp.solutions.drawing_utils
     mp_drawing_styles = mp.solutions.drawing_styles
     mp_hands = mp.solutions.hands
 
-    # Ustawienia ekranu
     screen_width, screen_height = pyautogui.size()
 
+    margin = 0.15
+    screen_width_margin_right = (1 - margin) * screen_width
+    screen_width_margin_left = margin * screen_width
+    screen_height_margin_up = (1 - margin) * screen_height
+    screen_height_margin_down = margin * screen_height
+
     last_gesture = None
-    # time.sleep(5)
-    # For webcam input:
+    last_last_gesture = None
+
     cap = cv2.VideoCapture(0)
     with mp_hands.Hands(
-        model_complexity=0,
-        min_detection_confidence=0.5,
-        min_tracking_confidence=0.5) as hands:
+            model_complexity=0,
+            min_detection_confidence=0.5,
+            min_tracking_confidence=0.5) as hands:
+
+        # FPS counter variables
+        prev_time = time.time()
+        fps = 0
+
         while cap.isOpened():
             success, image = cap.read()
             if not success:
                 print("Ignoring empty camera frame.")
-                # If loading a video, use 'break' instead of 'continue'.
                 continue
 
-            # To improve performance, optionally mark the image as not writeable to
-            # pass by reference.
+            current_time = time.time()
+            fps = 1 / (current_time - prev_time)
+            prev_time = current_time
+
+            # Display FPS on the image
+            cv2.putText(image, f'FPS: {int(fps)}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2, cv2.LINE_AA)
+            image = cv2.flip(image, 1)
+
             image.flags.writeable = False
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             image = cv2.flip(image, 1)
             results = hands.process(image)
 
-            # Draw the hand annotations on the image.
             image.flags.writeable = True
             image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
@@ -101,45 +111,40 @@ if __name__ == "__main__":
                 if results.multi_hand_landmarks and len(results.multi_hand_landmarks) > 0:
                     list_of_points = []
                     for hand_landmarks in results.multi_hand_landmarks:
-
                         for land in hand_landmarks.landmark:
                             list_of_points.append(land.x)
                             list_of_points.append(land.y)
                             list_of_points.append(land.z)
 
-                        # # Landmark dla indeksu (WRIST)
-                        # index_wrist = hand_landmarks.landmark[mp_hands.HandLandmark.WRIST]
-                        #
-                        # # Konwersja współrzędnych do zakresu ekranu
-                        # x = int(index_wrist.x * screen_width)
-                        # y = int(index_wrist.y * screen_height)
-                        #
-                        # # # Sterowanie myszką
-                        # # pyautogui.moveTo(x, y)
-                        # move_to(x, y)
-
-                    # print(len(list_of_points))
                     if len(list_of_points) == 63:
-
-                        # Konwersja współrzędnych do zakresu ekranu (WRIST)
                         x = int(list_of_points[0] * screen_width)
                         y = int(list_of_points[1] * screen_height)
 
-                        # # Sterowanie myszkąa
-                        # pyautogui.moveTo(x, y)
-                        move_to(x, y)
+                        if x > screen_width_margin_right or x < screen_width_margin_left or y > screen_height_margin_up or y < screen_height_margin_down:
+                            if x > screen_width_margin_right:
+                                right()
+                            elif x < screen_width_margin_left:
+                                left()
+                            if y > screen_height_margin_up:
+                                down()
+                            elif y < screen_height_margin_down:
+                                up()
+wa                        else:
+                            move_to(x, y)
 
                         gesture = predict_gesture(list_of_points)
                         print(gesture)
-
-                        if gesture != last_gesture:
+                        #
+                        if gesture != last_last_gesture:
                             choose_action(gesture)
+                            last_last_gesture = last_gesture
                             last_gesture = gesture
 
-            # Flip the image horizontally for a selfie-view display.
+
             cv2.imshow('MediaPipe Hands', image)
             if cv2.waitKey(5) & 0xFF == 27:
                 break
+
     choose_action("Fist")
     cap.release()
     cv2.destroyAllWindows()

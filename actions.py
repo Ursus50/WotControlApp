@@ -1,14 +1,41 @@
 import pydirectinput
 import time
 
+
 def clear_keys():
     pydirectinput.keyUp('w')
     pydirectinput.keyUp('a')
     pydirectinput.keyUp('s')
     pydirectinput.keyUp('d')
 
+
 def move_to(x, y):
     pydirectinput.moveTo(x, y)
+
+
+def move(x, y):
+    pydirectinput.moveRel(x, y)
+
+
+def right():
+    pydirectinput.keyDown('right')
+    pydirectinput.keyUp('right')
+
+
+def left():
+    pydirectinput.keyDown('left')
+    pydirectinput.keyUp('left')
+
+
+def up():
+    pydirectinput.keyDown('up')
+    pydirectinput.keyUp('up')
+
+
+def down():
+    pydirectinput.keyDown('down')
+    pydirectinput.keyUp('down')
+
 
 def choose_action(gesture):
     clear_keys()
@@ -40,7 +67,8 @@ def choose_action(gesture):
         # pydirectinput.keyUp('w')
         # pydirectinput.keyUp('d')
     elif gesture == "Fist":
-        pass        
+        pass
+
 
 if __name__ == "__main__":
     # Przykładowe użycie funkcji choose_action
