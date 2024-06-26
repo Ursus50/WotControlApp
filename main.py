@@ -131,7 +131,7 @@ if __name__ == "__main__":
     action_thread = threading.Thread(target=make_action, args=(q_action,))
     action_thread.start()
 
-
+    index_right = None
     time_stamp = 1
 
     cap = cv2.VideoCapture(0)
@@ -159,22 +159,29 @@ if __name__ == "__main__":
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             image = cv2.flip(image, 1)
             results = hands.process(image)
-            if results.multi_hand_landmarks:
-                print(results.multi_hand_landmarks[0].landmark[0])
-                # print(results.multi_handedness[0].classification[0].label)
 
-            # if len(results.multi_handedness) > 1:
-            #     pass
-
-                # print(type(results.multi_handedness[0]))
             image.flags.writeable = True
-
             # Display FPS on the image
             cv2.putText(image, f'FPS: {int(fps)}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2, cv2.LINE_AA)
 
             image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
+            # if results.multi_hand_landmarks:
+            #     # print(results.multi_hand_landmarks[0].landmark[0])
+            #     # print(results.multi_handedness[0].classification[0].label)
+            #     if results.multi_handedness[0].classification[0].label == 'Right' or len(results.multi_hand_landmarks) == 1:
+            #         index_right = 0
+            #     else:
+            #         index_right = 1
+
             if results.multi_hand_landmarks:
+
+                if results.multi_handedness[0].classification[0].label == 'Right' or len(results.multi_hand_landmarks) == 1:
+                    index_right = 0
+                else:
+                    index_right = 1
+
+
                 for hand_landmarks in results.multi_hand_landmarks:
                     mp_drawing.draw_landmarks(
                         image,
@@ -183,38 +190,18 @@ if __name__ == "__main__":
 
                 if results.multi_hand_landmarks and len(results.multi_hand_landmarks) > 0:
                     list_of_points = []
-                    # for hand_landmarks in results.multi_hand_landmarks:
-                    #
-                    #     mp_drawing.draw_landmarks(
-                    #         image,
-                    #         hand_landmarks,
-                    #         mp_hands.HAND_CONNECTIONS)
 
-                    for land in results.multi_hand_landmarks[0].landmark:
+
+                    for land in results.multi_hand_landmarks[index_right].landmark:
                         list_of_points.append(land.x)
                         list_of_points.append(land.y)
                         list_of_points.append(land.z)
-
-                        # for land in hand_landmarks.landmark:
-                        #     list_of_points.append(land.x)
-                        #     list_of_points.append(land.y)
-                        #     list_of_points.append(land.z)
 
                     if len(list_of_points) == 63:
                         x = int(list_of_points[0] * screen_width)
                         y = int(list_of_points[1] * screen_height)
 
-                        # if x > screen_width_margin_right or x < screen_width_margin_left or y > screen_height_margin_up or y < screen_height_margin_down:
-                        #     if x > screen_width_margin_right:
-                        #         right()
-                        #     elif x < screen_width_margin_left:
-                        #         left()
-                        #     if y > screen_height_margin_up:
-                        #         down()
-                        #     elif y < screen_height_margin_down:
-                        #         up()
-                        # else:
-                        #     move_to(x, y)
+
                         if time_stamp % 4 == 0:
                             cords = (x, y)
                             q_cursor.put(cords)
@@ -224,8 +211,8 @@ if __name__ == "__main__":
                         #
                         if gesture != last_last_gesture:
                             # choose_action(gesture)
-                            if time_stamp % 5 == 0:
-                                q_action.put(gesture)
+                            # if time_stamp % 5 == 0:
+                            q_action.put(gesture)
                             last_last_gesture = last_gesture
                             last_gesture = gesture
 
