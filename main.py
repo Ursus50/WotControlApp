@@ -154,16 +154,24 @@ if __name__ == "__main__":
             fps = 1 / (current_time - prev_time)
             prev_time = current_time
 
-            # Display FPS on the image
-            cv2.putText(image, f'FPS: {int(fps)}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2, cv2.LINE_AA)
-            image = cv2.flip(image, 1)
 
             image.flags.writeable = False
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             image = cv2.flip(image, 1)
             results = hands.process(image)
+            if results.multi_hand_landmarks:
+                print(results.multi_hand_landmarks[0].landmark[0])
+                # print(results.multi_handedness[0].classification[0].label)
 
+            # if len(results.multi_handedness) > 1:
+            #     pass
+
+                # print(type(results.multi_handedness[0]))
             image.flags.writeable = True
+
+            # Display FPS on the image
+            cv2.putText(image, f'FPS: {int(fps)}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2, cv2.LINE_AA)
+
             image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
             if results.multi_hand_landmarks:
@@ -175,11 +183,22 @@ if __name__ == "__main__":
 
                 if results.multi_hand_landmarks and len(results.multi_hand_landmarks) > 0:
                     list_of_points = []
-                    for hand_landmarks in results.multi_hand_landmarks:
-                        for land in hand_landmarks.landmark:
-                            list_of_points.append(land.x)
-                            list_of_points.append(land.y)
-                            list_of_points.append(land.z)
+                    # for hand_landmarks in results.multi_hand_landmarks:
+                    #
+                    #     mp_drawing.draw_landmarks(
+                    #         image,
+                    #         hand_landmarks,
+                    #         mp_hands.HAND_CONNECTIONS)
+
+                    for land in results.multi_hand_landmarks[0].landmark:
+                        list_of_points.append(land.x)
+                        list_of_points.append(land.y)
+                        list_of_points.append(land.z)
+
+                        # for land in hand_landmarks.landmark:
+                        #     list_of_points.append(land.x)
+                        #     list_of_points.append(land.y)
+                        #     list_of_points.append(land.z)
 
                     if len(list_of_points) == 63:
                         x = int(list_of_points[0] * screen_width)
