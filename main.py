@@ -209,12 +209,25 @@ if __name__ == "__main__":
                         gesture = predict_gesture(list_of_points)
                         print(gesture)
                         #
-                        if gesture != last_last_gesture:
+                        # if gesture != last_last_gesture:
+                        #     # choose_action(gesture)
+                        #     # if time_stamp % 5 == 0:
+                        #     if last_last_gesture == last_gesture:
+                        #         q_action.put(gesture)
+                        #     last_last_gesture = last_gesture
+                        #     last_gesture = gesture
+
+                        if gesture == last_gesture and last_last_gesture != last_gesture:
                             # choose_action(gesture)
                             # if time_stamp % 5 == 0:
+                            # if last_last_gesture == last_gesture:
                             q_action.put(gesture)
-                            last_last_gesture = last_gesture
-                            last_gesture = gesture
+                            # last_last_gesture = last_gesture
+                            # last_gesture = gesture
+
+                        last_last_gesture = last_gesture
+                        last_gesture = gesture
+
 
                         time_stamp += 1
 
