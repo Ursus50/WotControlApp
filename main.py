@@ -21,7 +21,7 @@ def get_model(type_net):
         hidden_size1 = 128
         hidden_size2 = 32
         output_size = 9
-        loaded_model = load_model_mlp("mlp_model_9_944.pth", input_size, hidden_size1, hidden_size2, output_size)
+        loaded_model = load_model_mlp("mlp_model_9_954.pth", input_size, hidden_size1, hidden_size2, output_size)
     elif type_net == "cnn":
         # Załaduj wytrenowany model
         input_channels = 1
@@ -94,10 +94,9 @@ def make_action(que):
 
 
 
-
 if __name__ == "__main__":
 
-    model = get_model("cnn")
+    model = get_model("mlp")
 
     pathDictionary = "class_names.json"
     dictionary_gesture = load_dictionary_from_file(pathDictionary)
@@ -108,11 +107,12 @@ if __name__ == "__main__":
 
     screen_width, screen_height = pyautogui.size()
 
-    margin = 0.15
-    screen_width_margin_right = (1 - margin) * screen_width
-    screen_width_margin_left = margin * screen_width
-    screen_height_margin_up = (1 - margin) * screen_height
-    screen_height_margin_down = margin * screen_height
+    margin_width = 0.2
+    margin_height = 0.25
+    screen_width_margin_right = (1 - margin_width) * screen_width
+    screen_width_margin_left = margin_width * screen_width
+    screen_height_margin_up = (1 - margin_height) * screen_height
+    screen_height_margin_down = margin_height * screen_height
 
     last_gesture = None
     last_last_gesture = None
@@ -144,6 +144,8 @@ if __name__ == "__main__":
         prev_time = time.time()
         fps = 0
 
+        gesture = "None"
+
         while cap.isOpened():
             success, image = cap.read()
             if not success:
@@ -166,13 +168,6 @@ if __name__ == "__main__":
 
             image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
-            # if results.multi_hand_landmarks:
-            #     # print(results.multi_hand_landmarks[0].landmark[0])
-            #     # print(results.multi_handedness[0].classification[0].label)
-            #     if results.multi_handedness[0].classification[0].label == 'Right' or len(results.multi_hand_landmarks) == 1:
-            #         index_right = 0
-            #     else:
-            #         index_right = 1
 
             if results.multi_hand_landmarks:
 
@@ -202,28 +197,16 @@ if __name__ == "__main__":
                         y = int(list_of_points[1] * screen_height)
 
 
-                        if time_stamp % 4 == 0:
+                        if time_stamp % 3 == 0:
                             cords = (x, y)
                             q_cursor.put(cords)
 
                         gesture = predict_gesture(list_of_points)
                         print(gesture)
-                        #
-                        # if gesture != last_last_gesture:
-                        #     # choose_action(gesture)
-                        #     # if time_stamp % 5 == 0:
-                        #     if last_last_gesture == last_gesture:
-                        #         q_action.put(gesture)
-                        #     last_last_gesture = last_gesture
-                        #     last_gesture = gesture
+
 
                         if gesture == last_gesture and last_last_gesture != last_gesture:
-                            # choose_action(gesture)
-                            # if time_stamp % 5 == 0:
-                            # if last_last_gesture == last_gesture:
                             q_action.put(gesture)
-                            # last_last_gesture = last_gesture
-                            # last_gesture = gesture
 
                         last_last_gesture = last_gesture
                         last_gesture = gesture
@@ -231,6 +214,7 @@ if __name__ == "__main__":
 
                         time_stamp += 1
 
+            cv2.putText(image, gesture, (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2, cv2.LINE_AA)
 
             cv2.imshow('MediaPipe Hands', image)
             if cv2.waitKey(5) & 0xFF == 27:
@@ -238,7 +222,7 @@ if __name__ == "__main__":
 
     # Wysłanie sygnału zakończenia
     q_cursor.put((None, None))
-    # Oczekiwanie na zakończenie wątku odbierającego
+    # Oczekiwanie na zakończenie wątku odbierającegos
     cursor_thread.join()
 
     # Wysłanie sygnału zakończenia

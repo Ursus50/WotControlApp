@@ -14,7 +14,7 @@ def move_to(x, y):
 
 
 def move(x, y):
-    pydirectinput.moveRel(x, y)
+    pydirectinput.move(x, y)
 
 
 def right():
@@ -52,6 +52,7 @@ def choose_action(gesture):
         # pydirectinput.keyUp('d')
     elif gesture == "CallMe":
         pydirectinput.keyDown('s')
+
         # pydirectinput.keyUp('s')
     elif gesture == "Plat":
         pydirectinput.keyDown('shift')
@@ -59,6 +60,7 @@ def choose_action(gesture):
     elif gesture == "L":
         pydirectinput.keyDown('w')
         pydirectinput.keyDown('a')
+
         # pydirectinput.keyUp('w')
         # pydirectinput.keyUp('a')
     elif gesture == "Devil":
@@ -75,8 +77,5 @@ if __name__ == "__main__":
     choose_action("IndexFinger")
 
     while True:
-        # Tutaj możesz dodać pętlę, która rejestruje gesty i wywołuje odpowiednie akcje
-        # Na przykład:
-        # gesture = funkcja_do_rejestrowania_gestów()
-        # choose_action(gesture)
+
         pass
