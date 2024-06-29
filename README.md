@@ -1,0 +1,1 @@
+Small project for fun. I'm using mediapipe from google and pytorch to recognize 9 different gestures. It allows me to contol tank in World of tanks. The video (https://youtu.be/VU0fX0Fen2U) shows that it works.
