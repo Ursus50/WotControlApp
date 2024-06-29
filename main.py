@@ -2,6 +2,8 @@ import pyautogui
 import cv2
 import mediapipe as mp
 import torch
+import threading
+import queue
 
 from mlp_model import load_model_mlp
 from cnn_model import load_model_cnn
@@ -19,7 +21,7 @@ def get_model(type_net):
         hidden_size1 = 128
         hidden_size2 = 32
         output_size = 9
-        loaded_model = load_model_mlp("mlp_model_9_944.pth", input_size, hidden_size1, hidden_size2, output_size)
+        loaded_model = load_model_mlp("mlp_model_9_954.pth", input_size, hidden_size1, hidden_size2, output_size)
     elif type_net == "cnn":
         # Załaduj wytrenowany model
         input_channels = 1
@@ -47,9 +49,54 @@ def predict_gesture(input_data):
     return predicted_gesture
 
 
+def cursor_track(que):
+
+    while True:
+        try:
+            cords = que.get_nowait()  # Próba pobrania elementu z kolejki bez blokowania
+            if cords[0] is None:
+                break  # Przerwij pętlę, jeśli otrzymano sygnał zakończenia
+
+            x = cords[0]
+            y = cords[1]
+
+            if x > screen_width_margin_right or x < screen_width_margin_left or y > screen_height_margin_up or y < screen_height_margin_down:
+                if x > screen_width_margin_right:
+                    right()
+                elif x < screen_width_margin_left:
+                    left()
+                if y > screen_height_margin_up:
+                    down()
+                elif y < screen_height_margin_down:
+                    up()
+            else:
+                move_to(x, y)
+
+            que.task_done()  # Zakończone przetwarzanie elementu
+        except queue.Empty:
+            # Kolejka jest pusta, możemy zrobić coś innego, na przykład:
+            time.sleep(0.01)  # Zrób krótką przerwę, aby nie obciążać CPU
+
+def make_action(que):
+
+    while True:
+        try:
+            gesture = que.get_nowait()  # Próba pobrania elementu z kolejki bez blokowania
+            if gesture is None:
+                break  # Przerwij pętlę, jeśli otrzymano sygnał zakończenia
+
+            choose_action(gesture)
+
+            que.task_done()  # Zakończone przetwarzanie elementu
+        except queue.Empty:
+            # Kolejka jest pusta, możemy zrobić coś innego, na przykład:
+            time.sleep(0.01)  # Zrób krótką przerwę, aby nie obciążać CPU
+
+
+
 if __name__ == "__main__":
 
-    model = get_model("cnn")
+    model = get_model("mlp")
 
     pathDictionary = "class_names.json"
     dictionary_gesture = load_dictionary_from_file(pathDictionary)
@@ -60,14 +107,32 @@ if __name__ == "__main__":
 
     screen_width, screen_height = pyautogui.size()
 
-    margin = 0.15
-    screen_width_margin_right = (1 - margin) * screen_width
-    screen_width_margin_left = margin * screen_width
-    screen_height_margin_up = (1 - margin) * screen_height
-    screen_height_margin_down = margin * screen_height
+    margin_width = 0.2
+    margin_height = 0.25
+    screen_width_margin_right = (1 - margin_width) * screen_width
+    screen_width_margin_left = margin_width * screen_width
+    screen_height_margin_up = (1 - margin_height) * screen_height
+    screen_height_margin_down = margin_height * screen_height
 
     last_gesture = None
     last_last_gesture = None
+
+    # Utworzenie kolejki
+    q_cursor = queue.Queue()
+
+    # Uruchomienie wątku odbierającego
+    cursor_thread = threading.Thread(target=cursor_track, args=(q_cursor,))
+    cursor_thread.start()
+
+    # Utworzenie kolejkiwaaawa
+    q_action = queue.Queue()
+
+    # Uruchomienie wawwątku odbierającegowawaaawa
+    action_thread = threading.Thread(target=make_action, args=(q_action,))
+    action_thread.start()
+
+    index_right = None
+    time_stamp = 1
 
     cap = cv2.VideoCapture(0)
     with mp_hands.Hands(
@@ -79,6 +144,8 @@ if __name__ == "__main__":
         prev_time = time.time()
         fps = 0
 
+        gesture = "None"
+
         while cap.isOpened():
             success, image = cap.read()
             if not success:
@@ -89,9 +156,6 @@ if __name__ == "__main__":
             fps = 1 / (current_time - prev_time)
             prev_time = current_time
 
-            # Display FPS on the image
-            cv2.putText(image, f'FPS: {int(fps)}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2, cv2.LINE_AA)
-            image = cv2.flip(image, 1)
 
             image.flags.writeable = False
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
@@ -99,9 +163,20 @@ if __name__ == "__main__":
             results = hands.process(image)
 
             image.flags.writeable = True
+            # Display FPS on the image
+            cv2.putText(image, f'FPS: {int(fps)}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2, cv2.LINE_AA)
+
             image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
+
             if results.multi_hand_landmarks:
+
+                if results.multi_handedness[0].classification[0].label == 'Right' or len(results.multi_hand_landmarks) == 1:
+                    index_right = 0
+                else:
+                    index_right = 1
+
+
                 for hand_landmarks in results.multi_hand_landmarks:
                     mp_drawing.draw_landmarks(
                         image,
@@ -110,40 +185,50 @@ if __name__ == "__main__":
 
                 if results.multi_hand_landmarks and len(results.multi_hand_landmarks) > 0:
                     list_of_points = []
-                    for hand_landmarks in results.multi_hand_landmarks:
-                        for land in hand_landmarks.landmark:
-                            list_of_points.append(land.x)
-                            list_of_points.append(land.y)
-                            list_of_points.append(land.z)
+
+
+                    for land in results.multi_hand_landmarks[index_right].landmark:
+                        list_of_points.append(land.x)
+                        list_of_points.append(land.y)
+                        list_of_points.append(land.z)
 
                     if len(list_of_points) == 63:
                         x = int(list_of_points[0] * screen_width)
                         y = int(list_of_points[1] * screen_height)
 
-                        if x > screen_width_margin_right or x < screen_width_margin_left or y > screen_height_margin_up or y < screen_height_margin_down:
-                            if x > screen_width_margin_right:
-                                right()
-                            elif x < screen_width_margin_left:
-                                left()
-                            if y > screen_height_margin_up:
-                                down()
-                            elif y < screen_height_margin_down:
-                                up()
-                        else:
-                            move_to(x, y)
+
+                        if time_stamp % 3 == 0:
+                            cords = (x, y)
+                            q_cursor.put(cords)
 
                         gesture = predict_gesture(list_of_points)
                         print(gesture)
-                        #
-                        if gesture != last_last_gesture:
-                            choose_action(gesture)
-                            last_last_gesture = last_gesture
-                            last_gesture = gesture
 
+
+                        if gesture == last_gesture and last_last_gesture != last_gesture:
+                            q_action.put(gesture)
+
+                        last_last_gesture = last_gesture
+                        last_gesture = gesture
+
+
+                        time_stamp += 1
+
+            cv2.putText(image, gesture, (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2, cv2.LINE_AA)
 
             cv2.imshow('MediaPipe Hands', image)
             if cv2.waitKey(5) & 0xFF == 27:
                 break
+
+    # Wysłanie sygnału zakończenia
+    q_cursor.put((None, None))
+    # Oczekiwanie na zakończenie wątku odbierającegos
+    cursor_thread.join()
+
+    # Wysłanie sygnału zakończenia
+    q_action.put(None)
+    # Oczekiwanie na zakończenie wątku odbierającego
+    action_thread.join()
 
     choose_action("Fist")
     cap.release()
